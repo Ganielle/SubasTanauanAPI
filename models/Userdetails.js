@@ -7,6 +7,9 @@ const UserdetailsSchema = new mongoose.Schema(
             ref: "Users",
             index: true // Automatically creates an index on 'amount'
         },
+        email: {
+            type: String
+        },
         firstname: {
             type: String
         },

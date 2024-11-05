@@ -1,5 +1,7 @@
 const Users = require("../models/Users")
 const Userdetails = require("../models/Userdetails")
+const Wallets = require("../models/Wallets")
+const Livestockcriteria = require("../models/Livestockcriteria")
 
 const bcrypt = require('bcrypt');
 const { default: mongoose, mongo } = require("mongoose");
@@ -149,8 +151,6 @@ exports.liststaffs = async (req, res) => {
         { $skip: pageOptions.page * pageOptions.limit },
         { $limit: pageOptions.limit }
     ])
-
-    console.log
 
     const total = await Users.aggregate([
         {
@@ -317,6 +317,91 @@ exports.editstaff = async (req, res) => {
         await Users.findOneAndDelete({username: staffusername})
 
         return res.status(400).json({ message: "bad-request", data: "There's a problem registering the account. Please try again." })
+    })
+
+    return res.json({message: "success"})
+}
+
+//  #endregion
+
+//  #region USERS
+
+exports.createuser = async (req, res) => {
+    const {username, password, email, firstname, lastname, pricerange, livestock} = req.body
+
+    if (!username){
+        return res.status(400).json({message: "failed", data: "Please input username"})
+    }
+    else if (!password){
+        return res.status(400).json({message: "failed", data: "Please input password"})
+    }
+    else if (!email){
+        return res.status(400).json({message: "failed", data: "Please input email"})
+    }
+    else if (!firstname){
+        return res.status(400).json({message: "failed", data: "Please input firstname"})
+    }
+    else if (!lastname){
+        return res.status(400).json({message: "failed", data: "Please input lastname"})
+    }
+    else if (!pricerange){
+        return res.status(400).json({message: "failed", data: "Please select a price range"})
+    }
+    else if (!livestock){
+        return res.status(400).json({message: "failed", data: "Please select a preferred livestock"})
+    }
+
+    const existinglogin = await Users.findOne({username: { $regex: new RegExp('^' + username + '$', 'i') }})
+    .then(data => data)
+
+    if (existinglogin){
+        return res.status(400).json({message: "failed", data: "There's an existing username. Please use a different one"})
+    }
+
+    const userdetails = await Userdetails.findOne({$or: [
+        {email: { $regex: new RegExp('^' + email + '$', 'i') }},
+        {$and: [
+            {firstname: { $regex: new RegExp('^' + firstname + '$', 'i') }},
+            {lastname: { $regex: new RegExp('^' + lastname + '$', 'i') }}
+        ]}
+    ]})
+    .then(data => data)
+
+    if (userdetails){
+        return res.status(400).json({message: "failed", data: "Email or firstname and lastname already existed"})
+    }
+
+    const user = await Users.create({username: username, password: password, token: "", bandate: "", banreason: "", status: "active", auth: "user"})
+    .catch(err => {
+        console.log(`There's a problem creating user login details. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There' a problem with the server. Please contact customer support"})
+    })
+
+    await Userdetails.create({owner: new mongoose.Types.ObjectId(user._id), email: email, firstname: firstname, lastname: lastname})
+    .catch(err => {
+        console.log(`There's a problem creating user details. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There' a problem with the server. Please contact customer support"})
+    })
+
+    const wallets = [
+        {owner: new mongoose.Types.ObjectId(user._id), type: "credits", amount: 0},
+        {owner: new mongoose.Types.ObjectId(user._id), type: "loan", amount: 0}
+    ]
+
+    await Wallets.insertMany(wallets)
+    .catch(err => {
+        console.log(`There's a problem creating wallet details. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There' a problem with the server. Please contact customer support"})
+    })
+
+    await Livestockcriteria.create({owner: new mongoose.Types.ObjectId(user._id), pricerange: pricerange, livestock: livestock})
+    .catch(err => {
+        console.log(`There's a problem creating livestock criteria. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There' a problem with the server. Please contact customer support"})
     })
 
     return res.json({message: "success"})

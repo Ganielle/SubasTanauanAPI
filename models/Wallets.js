@@ -7,6 +7,9 @@ const WalletsSchema = new mongoose.Schema(
             ref: "Users",
             index: true // Automatically creates an index on 'amount'
         },
+        type: {
+            type: String
+        },
         amount: {
             type: Number
         }

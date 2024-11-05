@@ -55,3 +55,8 @@ exports.login = async (req, res) => {
         auth: userdata.auth
     }})
 }
+
+exports.logout = async (req, res) => {
+    res.clearCookie('sessionToken', { sameSite: 'None', secure: true })
+    return res.json({message: "success"})
+}
