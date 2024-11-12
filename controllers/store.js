@@ -77,7 +77,7 @@ exports.storelist = async (req, res) => {
     }
 
     if (storenamefilter){
-        matchStage["storename"] = { $regex: new RegExp('^' + storename + '$', 'i') }
+        matchStage["storename"] = { $regex: storenamefilter, $options: 'i' } 
     }
 
     const storelist = await Store.aggregate([
@@ -109,8 +109,6 @@ exports.storelist = async (req, res) => {
         { $skip: pageOptions.page * pageOptions.limit },
         { $limit: pageOptions.limit }
     ])
-
-    console.log(storelist)
 
     const total = await Store.aggregate([
         {
@@ -148,6 +146,31 @@ exports.storelist = async (req, res) => {
     })
 
     return res.json({message: "success", data: data})
+}
+
+exports.approvedeclinestore = async (req, res) => {
+    const {id, email} = req.user
+
+    const {storeid, status} = req.body
+
+    if (!status){
+        return res.status(400).json({message: "failed", data: "Please select a valid status!"})
+    }
+    else if (status != "Approved" && status != "Denied"){
+        return res.status(400).json({message: "failed", data: "Please select a from Approved or Denied!"})
+    }
+    else if (!storeid){
+        return res.status(400).json({message: "failed", data: "Please select a valid store!"})
+    }
+
+    await Store.findOneAndUpdate({_id: new mongoose.Types.ObjectId(storeid)}, {status: status})
+    .catch(err => {
+        console.log(`There's a problem approving or denying the store ${storeid}. ERROR: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server! Please contact customer support for more details"})
+    })
+
+    return res.json({message: "success"})
 }
 
 //  #endregion
