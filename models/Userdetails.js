@@ -15,7 +15,10 @@ const UserdetailsSchema = new mongoose.Schema(
         },
         lastname: {
             type: String
-        }
+        },
+        picture: {
+            type: String
+        },
     },
     {
         timestamps: true

@@ -2,6 +2,8 @@ const Users = require("../models/Users")
 const Userdetails = require("../models/Userdetails")
 const Wallets = require("../models/Wallets")
 const Livestockcriteria = require("../models/Livestockcriteria")
+const Verificationcode = require("../models/verificationcode")
+const fetch = require('node-fetch');
 
 const bcrypt = require('bcrypt');
 const { default: mongoose, mongo } = require("mongoose");
@@ -351,6 +353,15 @@ exports.createuser = async (req, res) => {
         return res.status(400).json({message: "failed", data: "Please select a preferred livestock"})
     }
 
+    let picture = ""
+
+    if (req.file){
+        picture = req.file.path
+    }
+    else{
+        return res.status(400).json({message: "failed", data: "Please select a valid id first!"})
+    }
+
     const existinglogin = await Users.findOne({username: { $regex: new RegExp('^' + username + '$', 'i') }})
     .then(data => data)
 
@@ -371,14 +382,14 @@ exports.createuser = async (req, res) => {
         return res.status(400).json({message: "failed", data: "Email or firstname and lastname already existed"})
     }
 
-    const user = await Users.create({username: username, password: password, token: "", bandate: "", banreason: "", status: "active", auth: "user"})
+    const user = await Users.create({username: username, password: password, token: "", bandate: "", banreason: "", status: "active", auth: "user", picture: picture, verified: false, emailverified: false})
     .catch(err => {
         console.log(`There's a problem creating user login details. Error: ${err}`)
 
         return res.status(400).json({message: "bad-request", data: "There' a problem with the server. Please contact customer support"})
     })
 
-    await Userdetails.create({owner: new mongoose.Types.ObjectId(user._id), email: email, firstname: firstname, lastname: lastname})
+    await Userdetails.create({owner: new mongoose.Types.ObjectId(user._id), email: email, firstname: firstname, lastname: lastname, picture: picture})
     .catch(err => {
         console.log(`There's a problem creating user details. Error: ${err}`)
 
@@ -402,6 +413,163 @@ exports.createuser = async (req, res) => {
         console.log(`There's a problem creating livestock criteria. Error: ${err}`)
 
         return res.status(400).json({message: "bad-request", data: "There' a problem with the server. Please contact customer support"})
+    })
+
+    return res.json({message: "success"})
+}
+
+exports.sendemailverification = async (req, res) => {
+    const {id, email} = req.user
+
+    const code = Math.floor(10 ** (6 - 1) + Math.random() * 9 * (10 ** (6 - 1))).toString();
+
+    const payload = {
+        service_id: "service_x0h9mvo",
+        template_id: "template_ggvcgu6",
+        user_id: "YcxBYw1N1wNtGDjgw",
+        accessToken: "fiAQPpPp9Celfy5wpQFqE",
+        template_params: {
+            message: `${code}`,
+            to_email: email
+        }
+    };
+
+    await Verificationcode.create({owner: new mongoose.Types.ObjectId(id), code: code, used: false})
+    .catch(err => {
+        console.log(`There's a problem creating verification code for ${id}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server! Please contact customer support"})
+    })
+
+    const emailresponse = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+        method: 'POST',
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    })
+
+    const result = await emailresponse.text();
+
+    if (result !== 'OK'){
+        return res.status(400).json({message: "failed", data: "Failed to send verification code. Please contact customer support"})
+    }
+
+    return res.json({message: "success"})
+}
+
+exports.verifyemail = async (req, res) => {
+    const {id, email} = req.user
+
+    const {code} = req.body
+
+    if (!code){
+        return res.status(400).json({message: "failed", data: "Please enter your code first!"})
+    }
+
+    const verification = await Verificationcode.findOne({owner: new mongoose.Types.ObjectId(id), code: code})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem getting verification code for ${id}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server! Please contact customer support"})
+    })
+
+    if (!verification){
+        return res.status(400).json({message: "failed", data: "Your code entered does not match! Please enter the code provided in the email"})
+    }
+
+    else if (verification.used){
+        return res.status(400).json({message: "failed", data: "This code is already used! Please enter the latest code that is emailed to your email."})
+    }
+
+    await Verificationcode.findOneAndUpdate({owner: new mongoose.Types.ObjectId(id), code: code}, {used: true})
+    .catch(err => {
+        console.log(`There's a problem updating verification code for ${id}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server! Please contact customer support"})
+    })
+
+    await Users.findOneAndUpdate({_id: new mongoose.Types.ObjectId(id)}, {emailverified: true})
+    .catch(err => {
+        console.log(`There's a problem updating user email verification for ${id}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server! Please contact customer support"})
+    })
+
+    return res.json({message: "success"})
+}
+
+exports.sendotpemail = async (req, res) => {
+    const {id, email} = req.user
+
+    const code = Math.floor(10 ** (6 - 1) + Math.random() * 9 * (10 ** (6 - 1))).toString();
+
+    const payload = {
+        service_id: "service_x0h9mvo",
+        template_id: "template_h9evjj4",
+        user_id: "YcxBYw1N1wNtGDjgw",
+        accessToken: "fiAQPpPp9Celfy5wpQFqE",
+        template_params: {
+            message: `${code}`,
+            to_email: email
+        }
+    };
+
+    await Verificationcode.create({owner: new mongoose.Types.ObjectId(id), code: code, used: false})
+    .catch(err => {
+        console.log(`There's a problem creating verification code for ${id}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server! Please contact customer support"})
+    })
+
+    const emailresponse = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+        method: 'POST',
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    })
+
+    const result = await emailresponse.text();
+
+    if (result !== 'OK'){
+        return res.status(400).json({message: "failed", data: "Failed to send verification code. Please contact customer support"})
+    }
+
+    return res.json({message: "success"})
+}
+
+exports.verifyOTP = async (req, res) => {
+    const {id, email} = req.user
+
+    const {code} = req.body
+
+    if (!code){
+        return res.status(400).json({message: "failed", data: "Please enter your code first!"})
+    }
+
+    const verification = await Verificationcode.findOne({owner: new mongoose.Types.ObjectId(id), code: code})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem getting OTP code for ${id}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server! Please contact customer support"})
+    })
+
+    if (!verification){
+        return res.status(400).json({message: "failed", data: "Your code entered does not match! Please enter the code provided in the email"})
+    }
+
+    else if (verification.used){
+        return res.status(400).json({message: "failed", data: "This code is already used! Please enter the latest code that is emailed to your email."})
+    }
+
+    await Verificationcode.findOneAndUpdate({owner: new mongoose.Types.ObjectId(id), code: code}, {used: true})
+    .catch(err => {
+        console.log(`There's a problem updating verification code for ${id}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server! Please contact customer support"})
     })
 
     return res.json({message: "success"})

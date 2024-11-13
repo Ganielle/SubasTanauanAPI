@@ -6,6 +6,7 @@ const jsonwebtokenPromisified = require('jsonwebtoken-promisified');
 const path = require("path");
 const privateKey = fs.readFileSync(path.resolve(__dirname, "../keys/private-key.pem"), 'utf-8');
 const { default: mongoose } = require("mongoose");
+const Userdetails = require("../models/Userdetails");
 
 const encrypt = async password => {
     const salt = await bcrypt.genSalt(10);
@@ -40,7 +41,15 @@ exports.login = async (req, res) => {
         return res.status(400).json({message: "bad-request", data: "There's a problem logging in your account. Please contact customer support for more details!"})
     })
 
-    const payload = { id: userdata._id, username: userdata.username, token: token, auth: userdata.auth }
+    const userdetails = await Userdetails.findOne({owner: new mongoose.Types.ObjectId(userdata._id)})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem logging in your account ${username}, failed getting user details. Error ${err}`)
+        
+        return res.status(400).json({message: "bad-request", data: "There's a problem logging in your account. Please contact customer support for more details!"})
+    })
+
+    const payload = { id: userdata._id, username: userdata.username, email: userdetails.email, token: token, auth: userdata.auth }
 
     let jwtoken = ""
 
@@ -50,9 +59,11 @@ exports.login = async (req, res) => {
         console.error('Error signing token:', error.message);
         return res.status(500).json({ error: 'Internal Server Error', data: "There's a problem signing in! Please contact customer support for more details! Error 004" });
     }
+    console.log(userdata.emailverified)
     res.cookie('sessionToken', jwtoken, { secure: true, sameSite: 'None' } )
     return res.json({message: "success", data: {
-        auth: userdata.auth
+        auth: userdata.auth,
+        emailverified: userdata.auth == 'superadmin' ? true : userdata.emailverified
     }})
 }
 

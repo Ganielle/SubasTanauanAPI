@@ -27,6 +27,12 @@ const UsersSchema = new mongoose.Schema(
             type: String,
             default: "active",
             index: true // Automatically creates an index on 'amount'
+        },
+        verified: {
+            type: Boolean
+        },
+        emailverified: {
+            type: Boolean
         }
     },
     {
