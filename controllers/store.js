@@ -173,7 +173,4 @@ exports.approvedeclinestore = async (req, res) => {
     return res.json({message: "success"})
 }
 
-exports.approvestorelist = async (req, res) => {
-    
-}
 //  #endregion
