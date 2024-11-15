@@ -173,4 +173,24 @@ exports.approvedeclinestore = async (req, res) => {
     return res.json({message: "success"})
 }
 
+exports.getstoredetails = async (req, res) => {
+    const {id, username} = req.user
+
+    const {storeid} = req.query
+
+    if (!storeid){
+        return res.status(400).json({message: "failed", data: "Please select a valid store id"})
+    }
+
+    const store = await Store.findOne({_id: new mongoose.Types.ObjectId(storeid)})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem getting the store for ${storeid}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server. Please contact customer support for more details."})
+    })
+
+    return res.json({message: "success", data: store})
+}
+
 //  #endregion
