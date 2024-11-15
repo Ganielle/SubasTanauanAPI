@@ -382,7 +382,7 @@ exports.createuser = async (req, res) => {
         return res.status(400).json({message: "failed", data: "Email or firstname and lastname already existed"})
     }
 
-    const user = await Users.create({username: username, password: password, token: "", bandate: "", banreason: "", status: "active", auth: "user", picture: picture, verified: false, emailverified: false})
+    const user = await Users.create({username: username, password: password, token: "", bandate: "", banreason: "", status: "active", auth: "user", picture: picture, verified: "Pending", emailverified: false, deniedidreason: ""})
     .catch(err => {
         console.log(`There's a problem creating user login details. Error: ${err}`)
 

@@ -1,28 +1,31 @@
 const mongoose = require("mongoose");
 
-const StoreSchema = new mongoose.Schema(
+const InventorySchema = new mongoose.Schema(
     {
-        owner: {
+        storeowner: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Users",
+            ref: "Store",
             index: true // Automatically creates an index on 'amount'
         },
-        storename: {
+        itemname: {
             type: String,
             index: true
         },
-        storeaddress: {
+        itemqty: {
+            type: Number
+        },
+        itemprice: {
+            type: Number,
+            index: true
+        },
+        itemtype: {
             type: String,
             index: true
         },
-        storecontactnumber: {
-            type: String,
-            index: true
-        },
-        lang: {
+        itemdescription: {
             type: String
         },
-        lat: {
+        image: {
             type: String
         },
         status: {
@@ -35,5 +38,5 @@ const StoreSchema = new mongoose.Schema(
     }
 )
 
-const Store = mongoose.model("Store", StoreSchema)
-module.exports = Store
+const Inventory = mongoose.model("Inventory", InventorySchema)
+module.exports = Inventory

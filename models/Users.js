@@ -29,10 +29,13 @@ const UsersSchema = new mongoose.Schema(
             index: true // Automatically creates an index on 'amount'
         },
         verified: {
-            type: Boolean
+            type: String
         },
         emailverified: {
             type: Boolean
+        },
+        deniedidreason: {
+            type: String
         }
     },
     {

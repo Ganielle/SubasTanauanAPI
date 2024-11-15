@@ -1,5 +1,5 @@
 const router = require("express").Router()
-const {getstorestatus, applystore, storelist, approvedeclinestore, getstoredetails} = require("../controllers/store")
+const {getstorestatus, applystore, storelist, approvedeclinestore, getstoredetails, getownedstoredetails} = require("../controllers/store")
 const {protectsuperadmin, protectuser} = require("../middleware/middleware")
 
 router
@@ -16,6 +16,7 @@ router
     //  #region USERS
 
     .get("/getstorestatus", protectuser, getstorestatus)
+    .get("/getownedstoredetails", protectuser, getownedstoredetails)
     .post("/applystore", protectuser, applystore)
 
     //  #endregion

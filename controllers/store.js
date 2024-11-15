@@ -7,6 +7,10 @@ exports.getstorestatus = async (req, res) => {
     const {id, username} = req.user
 
     const storestatus = await Store.findOne({owner: new mongoose.Types.ObjectId(id)})
+    .populate({
+        path: "owner",
+        select: "verified"
+    })
     .then(data => data)
     .catch(err => {
 
@@ -16,10 +20,14 @@ exports.getstorestatus = async (req, res) => {
     })
 
     const data = {
+        storeid: "",
+        idstatus: "",
         status: "none"
     }
 
     if (storestatus){
+        data.storeid = storestatus._id
+        data.idstatus = storestatus.owner.verified
         data.status = storestatus.status
     }
 
@@ -29,13 +37,16 @@ exports.getstorestatus = async (req, res) => {
 exports.applystore = async (req, res) => {
     const {id, username} = req.user
 
-    const {storename, address, contactnumber} = req.body
+    const {storename, address, lang, lat, contactnumber} = req.body
 
     if (!storename){
         return res.status(400).json({message: "failed", data: "Please enter a store name"})
     }
     else if (!address){
         return res.status(400).json({message: "failed", data: "Please enter a store address"})
+    }
+    else if (!lang || !lat){
+        return res.status(400).json({message: "failed", data: "Store address not valid!"})
     }
     else if (!contactnumber){
         return res.status(400).json({message: "failed", data: "Please enter a store contact number"})
@@ -47,7 +58,7 @@ exports.applystore = async (req, res) => {
         return res.status(400).json({message: "failed", data: "There's an existing store name. Please use a different one"})
     }
 
-    await Store.create({owner: new mongoose.Types.ObjectId(id), storename: storename, storeaddress: address, storecontactnumber: contactnumber, status: "Pending"})
+    await Store.create({owner: new mongoose.Types.ObjectId(id), storename: storename, storeaddress: address, storecontactnumber: contactnumber, lat: lat, lang: lang, status: "Pending"})
     .catch(err => {
 
         console.log(`There's a problem saving store for ${username} Error: ${err}`)
@@ -56,6 +67,68 @@ exports.applystore = async (req, res) => {
     })
 
     return res.json({message: "success"})
+}
+
+exports.getownedstoredetails = async (req, res) => {
+    const {id, username} = req.user
+
+    const {storeid} = req.query
+
+    if (!storeid){
+        return res.status(400).json({message: "failed", data: "Please select a valid store id"})
+    }
+
+    const store = await Store.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(storeid)
+            }
+        },
+        {
+            $lookup: {
+                from: 'userdetails', // Collection name for the 'userDetails' schema
+                localField: 'owner',
+                foreignField: 'owner',
+                as: 'details'
+            }
+        },
+        {
+            $unwind: '$details' // Deconstruct the 'details' array to a single object
+        },
+        {
+            $lookup: {
+                from: 'users', // Collection name for the 'userDetails' schema
+                localField: 'owner',
+                foreignField: '_id',
+                as: 'userlogindetails'
+            }
+        },
+        {
+            $unwind: '$userlogindetails' // Deconstruct the 'details' array to a single object
+        },
+        {
+            $project: {
+                _id: 1,
+                storename: '$storename',
+                storeaddress: '$storeaddress',
+                storecontactnumber: '$storecontactnumber',
+                ownername: { $concat: ['$details.firstname', ' ', '$details.lastname']},
+                owneremail: '$details.email',
+                verifiedemail: '$userlogindetails.emailverified',
+                verifiedbyid: '$userlogindetails.verified',
+                lang: '$lang',
+                lat: '$lat'
+            }
+        }
+    ])
+    .catch(err => {
+        console.log(`There's a problem getting the store for ${storeid}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server. Please contact customer support for more details."})
+    })
+    
+
+    return res.json({message: "success", data: store})
 }
 
 //  #endregion
@@ -182,13 +255,55 @@ exports.getstoredetails = async (req, res) => {
         return res.status(400).json({message: "failed", data: "Please select a valid store id"})
     }
 
-    const store = await Store.findOne({_id: new mongoose.Types.ObjectId(storeid)})
-    .then(data => data)
+    const store = await Store.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(storeid)
+            }
+        },
+        {
+            $lookup: {
+                from: 'userdetails', // Collection name for the 'userDetails' schema
+                localField: 'owner',
+                foreignField: 'owner',
+                as: 'details'
+            }
+        },
+        {
+            $unwind: '$details' // Deconstruct the 'details' array to a single object
+        },
+        {
+            $lookup: {
+                from: 'users', // Collection name for the 'userDetails' schema
+                localField: 'owner',
+                foreignField: '_id',
+                as: 'userlogindetails'
+            }
+        },
+        {
+            $unwind: '$userlogindetails' // Deconstruct the 'details' array to a single object
+        },
+        {
+            $project: {
+                _id: 1,
+                storename: '$storename',
+                storeaddress: '$storeaddress',
+                storecontactnumber: '$storecontactnumber',
+                ownername: { $concat: ['$details.firstname', ' ', '$details.lastname']},
+                owneremail: '$details.email',
+                verifiedemail: '$userlogindetails.emailverified',
+                verifiedbyid: '$userlogindetails.verified',
+                lang: '$lang',
+                lat: '$lat'
+            }
+        }
+    ])
     .catch(err => {
         console.log(`There's a problem getting the store for ${storeid}. Error: ${err}`)
 
         return res.status(400).json({message: "bad-request", data: "There's a problem with the server. Please contact customer support for more details."})
     })
+    
 
     return res.json({message: "success", data: store})
 }
