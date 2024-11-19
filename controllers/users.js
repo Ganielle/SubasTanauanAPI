@@ -7,13 +7,14 @@ const fetch = require('node-fetch');
 
 const bcrypt = require('bcrypt');
 const { default: mongoose, mongo } = require("mongoose");
+const picture = require("../routes/picture")
 
 const encrypt = async password => {
     const salt = await bcrypt.genSalt(10);
     return await bcrypt.hash(password, salt);
 }
 
-//  #region STAFF USERS
+//  #region SUPER ADMIN
 
 exports.createstaffs = async (req, res) => {
     const {username, id} = req.user
@@ -322,6 +323,71 @@ exports.editstaff = async (req, res) => {
     })
 
     return res.json({message: "success"})
+}
+
+exports.listuserid = async (req, res) => {
+    const {id, username} = req.user
+
+    const {page, limit, namesearch} = req.query
+
+    const pageOptions = {
+        page: parseInt(page) || 0,
+        limit: parseInt(limit) || 10
+    }
+
+    const matchStage = {}
+    if (namesearch){
+        matchStage["$or"] = [
+            {'firstname': { $regex: namesearch, $options: 'i' }},
+            {'lastname': { $regex: namesearch, $options: 'i' }},
+            { $expr: { $regexMatch: { input: { $concat: ['$firstname', ' ', 'lastname'] }, regex: namesearch, options: 'i' } } } // Search for first + last name
+        ]
+    }
+
+    const result = await Userdetails.aggregate([
+        {
+            $match: matchStage
+        },
+        {
+            $lookup: {
+                from: 'users', // Collection name for the 'userDetails' schema
+                localField: 'owner',
+                foreignField: '_id',
+                as: 'details'
+            }
+        },
+        {
+            $unwind: '$details' // Deconstruct the 'details' array to a single object
+        },
+        {
+            $match: {
+                'details.auth': 'user',
+                'details.verified': 'Pending'
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                username: '$details.username',
+                fullname: { $concat: ['$firstname', ' ', '$lastname']},
+                picture: 1,
+                createdAt: 1
+            }
+        },
+        { $skip: pageOptions.page * pageOptions.limit },
+        { $limit: pageOptions.limit }
+    ])
+
+    const total = await Userdetails.countDocuments(matchStage)
+
+    const totalPages = Math.ceil((total?.total || 0) / pageOptions.limit);
+
+    const data = {
+        list: result,
+        totalpages: totalPages
+    };
+
+    return res.json({message: "success", data: data})
 }
 
 //  #endregion
