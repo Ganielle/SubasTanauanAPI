@@ -1,5 +1,5 @@
 const router = require("express").Router()
-const {createstaffs, liststaffs, deletestaff, editstaff, createuser, sendemailverification, verifyemail, verifyOTP, sendotpemail, listuserid} = require("../controllers/users")
+const {createstaffs, liststaffs, deletestaff, editstaff, createuser, sendemailverification, verifyemail, verifyOTP, sendotpemail, listuserid, approvedenieuserid} = require("../controllers/users")
 const {protectsuperadmin, protectuser} = require("../middleware/middleware")
 const upload = require("../middleware/uploadspic")
 
@@ -14,6 +14,7 @@ router
     .post("/createstaffs", protectsuperadmin, createstaffs)
     .post("/editstaff", protectsuperadmin, editstaff)
     .post("/deletestaff", protectsuperadmin, deletestaff)
+    .post("/approvedenieuserid", protectsuperadmin, approvedenieuserid)
 
     //  #endregion
 

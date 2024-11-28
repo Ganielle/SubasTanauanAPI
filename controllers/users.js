@@ -362,7 +362,8 @@ exports.listuserid = async (req, res) => {
         {
             $match: {
                 'details.auth': 'user',
-                'details.verified': 'Pending'
+                'details.verified': 'Pending',
+                'deniedidreason': ''
             }
         },
         {
@@ -388,6 +389,26 @@ exports.listuserid = async (req, res) => {
     };
 
     return res.json({message: "success", data: data})
+}
+
+exports.approvedenieuserid = async (req, res) => {
+    const {id, username} = req.user
+
+    const {userid, status, deniedidreason} = req.body
+
+    if (!userid){
+        return res.status(400).json({message: "failed", data: "Please select a valid user"})
+    }
+
+    await Users.findOneAndUpdate({_id: new mongoose.Types.ObjectId(userid)}, {verified: status, deniedidreason: deniedidreason})
+    .catch(err => {
+
+        console.log(`There's a problem approving or denying user id ${userid}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server. Please contact customer support for more details"})
+    })
+
+    return res.json({message: "success"})
 }
 
 //  #endregion
