@@ -511,10 +511,10 @@ exports.sendemailverification = async (req, res) => {
     const code = Math.floor(10 ** (6 - 1) + Math.random() * 9 * (10 ** (6 - 1))).toString();
 
     const payload = {
-        service_id: "service_x0h9mvo",
-        template_id: "template_ggvcgu6",
-        user_id: "YcxBYw1N1wNtGDjgw",
-        accessToken: "fiAQPpPp9Celfy5wpQFqE",
+        service_id: "service_jq2jytx",
+        template_id: "template_odiblf5",
+        user_id: "DfD6heV10OHxMSevS",
+        accessToken: "lofZp5FlHU1WfVFNx1J3e",
         template_params: {
             message: `${code}`,
             to_email: email
@@ -593,10 +593,10 @@ exports.sendotpemail = async (req, res) => {
     const code = Math.floor(10 ** (6 - 1) + Math.random() * 9 * (10 ** (6 - 1))).toString();
 
     const payload = {
-        service_id: "service_x0h9mvo",
-        template_id: "template_h9evjj4",
-        user_id: "YcxBYw1N1wNtGDjgw",
-        accessToken: "fiAQPpPp9Celfy5wpQFqE",
+        service_id: "service_fsho7al",
+        template_id: "template_r90azpf",
+        user_id: "DfD6heV10OHxMSevS",
+        accessToken: "lofZp5FlHU1WfVFNx1J3e",
         template_params: {
             message: `${code}`,
             to_email: email
