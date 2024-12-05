@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
 const http = require("http");
 const cors = require("cors");
+const { Server } = require("socket.io");
 require("dotenv").config();
 
 const app = express();
@@ -37,6 +38,13 @@ mongoose
 app.use(bodyParser.json({ limit: "50mb" }))
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: false, parameterLimit: 50000 }))
 app.use(cookieParser());
+
+const io = new Server(server, {
+  cors: corsConfig, // Pass configuration to websocket
+});
+
+//  socket
+require("./socket/socket")(io);
 
 // Routes
 require("./routes")(app);

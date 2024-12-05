@@ -8,6 +8,7 @@ const routers = app => {
     app.use("/store", require("./store"))
     app.use("/uploads", require('./picture'))
     app.use("/inventory", require('./inventory'))
+    app.use("/livebidding", require("./livebidding"))
 }
 
 module.exports = routers

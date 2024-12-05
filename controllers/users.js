@@ -362,13 +362,13 @@ exports.listuserid = async (req, res) => {
         {
             $match: {
                 'details.auth': 'user',
-                'details.verified': 'Pending',
-                'deniedidreason': ''
+                'details.verified': 'Pending'
             }
         },
         {
             $project: {
                 _id: 1,
+                userid: '$details._id',
                 username: '$details.username',
                 fullname: { $concat: ['$firstname', ' ', '$lastname']},
                 picture: 1,
@@ -660,6 +660,22 @@ exports.verifyOTP = async (req, res) => {
     })
 
     return res.json({message: "success"})
+}
+
+exports.getuserdetails = async (req, res) => {
+    const {id, username} = req.user
+
+    const details = await Userdetails.findOne({owner: new mongoose.Types.ObjectId(id)})
+    .populate({
+        path: "owner",
+        select: "username"
+    })
+    
+    if (!details){
+        return res.status(400).json({message: "failed", data: "User not exist"})
+    }
+
+    return res.json({message: "success", data: details})
 }
 
 //  #endregion
