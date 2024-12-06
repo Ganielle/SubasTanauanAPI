@@ -1,10 +1,20 @@
 const { default: mongoose } = require("mongoose")
 const Store = require("../models/Store")
+const Users = require("../models/Users")
 
 //  #region USER
 
 exports.getstorestatus = async (req, res) => {
     const {id, username} = req.user
+
+    const idstats = await Users.findOne({_id: new mongoose.Types.ObjectId(id)})
+    .then(data => data)
+    .catch(err => {
+
+        console.log(`There's a problem gettng user data for ${username} Error: ${err}`)
+
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again." })
+    })
 
     const storestatus = await Store.findOne({owner: new mongoose.Types.ObjectId(id)})
     .populate({
@@ -19,15 +29,16 @@ exports.getstorestatus = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again." })
     })
 
+    console.log(storestatus)
+
     const data = {
         storeid: "",
-        idstatus: "",
+        idstatus: idstats.verified,
         status: "none"
     }
 
     if (storestatus){
         data.storeid = storestatus._id
-        data.idstatus = storestatus.owner.verified
         data.status = storestatus.status
     }
 
