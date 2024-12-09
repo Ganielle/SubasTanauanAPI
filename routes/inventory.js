@@ -1,5 +1,5 @@
 const router = require("express").Router()
-const {createitem, inventorylist, getinventoryitemdata, edititem, getmarketplaceitem} = require("../controllers/inventory")
+const {createitem, inventorylist, getinventoryitemdata, edititem, getmarketplaceitem, listrequestitems} = require("../controllers/inventory")
 const {protectsuperadmin, protectuser} = require("../middleware/middleware")
 const upload = require("../middleware/uploadspic")
 
@@ -8,6 +8,8 @@ const uploadimg = upload.single("file")
 router
 
     //  #region SUPERADMIN
+
+    .get("/listrequestitems", protectsuperadmin, listrequestitems)
 
     //  #endregion
 

@@ -205,7 +205,8 @@ exports.getmarketplaceitem = async (req ,res) => {
     }
 
     const matchStage = {
-        itemqty: {$gt: 0}
+        itemqty: {$gt: 0},
+        status: "Approved"
     }
 
     if (price){
@@ -291,6 +292,87 @@ exports.getmarketplaceitem = async (req ,res) => {
 
     const data = {
         list: result,
+        totalpages: totalPages
+    };
+
+    return res.json({message: "success", data: data})
+}
+
+//  #endregion
+
+//  #region SUPERADMIN
+
+exports.listrequestitems = async (req, res) => {
+    const {id, username} = req.user
+
+    const {page, limit, itemname, status} = req.query
+
+    const matchStage = {}
+    if (itemname){
+        matchStage["itemname"] = { $regex: new RegExp(itemname, 'i') }
+    }
+
+    if (status){
+        matchStage["status"] = status
+    }
+
+    const pageOptions = {
+        page: parseInt(page) || 0,
+        limit: parseInt(limit) || 10
+    }
+
+    const items = await Inventory.aggregate([
+        {
+            $match: matchStage
+        },
+        {
+            $lookup: {
+                from: 'stores', // Collection name for the 'userDetails' schema
+                localField: 'storeowner',
+                foreignField: '_id',
+                as: 'storedetails'
+            }
+        },
+        {
+            $unwind: '$storedetails' // Deconstruct the 'details' array to a single object
+        },
+        {
+            $lookup: {
+                from: 'userdetails', // Collection name for the 'userDetails' schema
+                localField: 'storedetails.owner',
+                foreignField: 'owner',
+                as: 'details'
+            }
+        },
+        {
+            $unwind: '$details' // Deconstruct the 'details' array to a single object
+        },
+        {
+            $project: {
+                _id: 0,
+                itemid: '$_id',
+                itemname: '$itemname',
+                itemowner: { $concat: ['$details.firstname', ' ', '$details.lastname']},
+                storename: '$storedetails.storename'
+            }
+        },
+        { $skip: pageOptions.page * pageOptions.limit },
+        { $limit: pageOptions.limit }
+    ])
+
+    console.log(items)
+
+    const total = await Inventory.aggregate([
+        {
+            $match: matchStage
+        },
+        { $count: 'total' }
+    ]);
+
+    const totalPages = Math.ceil((total[0]?.total || 0) / pageOptions.limit);
+
+    const data = {
+        list: items,
         totalpages: totalPages
     };
 
