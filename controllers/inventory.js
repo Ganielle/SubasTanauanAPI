@@ -379,4 +379,29 @@ exports.listrequestitems = async (req, res) => {
     return res.json({message: "success", data: data})
 }
 
+exports.approverequestitems = async (req, res) => {
+    const {id, username} = req.user
+
+    const {itemid, approvestatus} = req.body
+
+    if (!itemid){
+        return res.status(400).json({message: "failed", data: "Please select a valid item"})
+    }
+    else if (!approvestatus){
+        return res.status(400).json({message: "failed", data: "Please select a valid status"})
+    }
+    else if (approvestatus != "Approved" && approvestatus != "Denied"){
+        return res.status(400).json({message: "failed", data: "Please select between approved and denied status"})
+    }
+
+    await Inventory.findOneAndUpdate({_id: new mongoose.Types.ObjectId(itemid)}, {status: approvestatus})
+    .catch(err => {
+        console.log(`There's a problem updating status of item ${itemid}. Error: ${err}`)
+
+        return res.status(400).json({message: "bad-request", data: "There's a problem with the server. Please contact customer support for more details"})
+    })
+
+    return res.json({message: "success"})
+}
+
 //  #endregion
