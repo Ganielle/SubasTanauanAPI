@@ -42,8 +42,8 @@ exports.getannouncement = async (req, res) => {
     })
 
     const data = {
-        title: announcementdata.length > 0 ? announcementdata.title : "",
-        content: announcementdata.length > 0 ? announcementdata.content : ""
+        title: announcementdata.length > 0 ? announcementdata[0].title : "",
+        content: announcementdata.length > 0 ? announcementdata[0].content : ""
     }
 
     return res.json({message: "success", data: data})
